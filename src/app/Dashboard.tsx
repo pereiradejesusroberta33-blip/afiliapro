@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -8,10 +9,53 @@ import {
   MousePointerClick,
   TrendingUp,
   Wallet,
+  ClipboardList,
+  Settings,
 } from 'lucide-react'
+
 import { supabase } from '../lib/supabase'
+import Products from './Products'
+import MyLinks from './MyLinks'
+import Applications from './Applications'
+import Admin from './Admin'
+
+type Pagina =
+  | 'inicio'
+  | 'produtos'
+  | 'links'
+  | 'solicitacoes'
+  | 'admin'
 
 export default function Dashboard() {
+  const [pagina, setPagina] = useState<Pagina>('inicio')
+  const [admin, setAdmin] = useState(false)
+  const [carregando, setCarregando] = useState(true)
+
+  useEffect(() => {
+    async function verificarPerfil() {
+      const { data: usuarioData } = await supabase.auth.getUser()
+
+      if (!usuarioData.user) {
+        setCarregando(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', usuarioData.user.id)
+        .single()
+
+      if (!error && data?.role === 'admin') {
+        setAdmin(true)
+      }
+
+      setCarregando(false)
+    }
+
+    verificarPerfil()
+  }, [])
+
   async function sair() {
     const { error } = await supabase.auth.signOut()
 
@@ -20,90 +64,120 @@ export default function Dashboard() {
     }
   }
 
+  if (carregando) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Carregando AfiliaPro...
+      </div>
+    )
+  }
+
+  function menu(
+    nome: Pagina,
+    texto: string,
+    Icone: typeof LayoutDashboard,
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={() => setPagina(nome)}
+        className={`flex w-full items-center gap-3 rounded-xl p-3 text-left ${
+          pagina === nome
+            ? 'bg-white/15'
+            : 'hover:bg-white/10'
+        }`}
+      >
+        <Icone size={20} />
+        {texto}
+      </button>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <aside className="hidden min-h-screen w-64 bg-violet-800 p-6 text-white md:fixed md:block">
-        <h1 className="mb-10 text-2xl font-bold">AfiliaPro</h1>
+    <div className="min-h-screen bg-gray-100 md:flex">
+      <aside className="bg-violet-800 p-5 text-white md:min-h-screen md:w-64 md:shrink-0">
+        <h1 className="mb-6 text-2xl font-bold">AfiliaPro</h1>
 
-        <nav className="space-y-3">
-          <a className="flex items-center gap-3 rounded-xl bg-white/15 p-3">
-            <LayoutDashboard size={20} />
-            Painel inicial
-          </a>
+        <nav className="grid grid-cols-2 gap-2 md:flex md:flex-col">
+          {menu('inicio', 'Painel inicial', LayoutDashboard)}
+          {menu('produtos', 'Produtos', ShoppingBag)}
+          {menu('links', 'Meus links', LinkIcon)}
+          {menu('solicitacoes', 'Solicitações', ClipboardList)}
 
-          <a className="flex items-center gap-3 rounded-xl p-3 hover:bg-white/10">
-            <ShoppingBag size={20} />
-            Produtos
-          </a>
-
-          <a className="flex items-center gap-3 rounded-xl p-3 hover:bg-white/10">
-            <LinkIcon size={20} />
-            Meus links
-          </a>
-
-          <a className="flex items-center gap-3 rounded-xl p-3 hover:bg-white/10">
-            <User size={20} />
-            Minha conta
-          </a>
+          {admin && menu('admin', 'Administração', Settings)}
         </nav>
+
+        <button
+          type="button"
+          onClick={sair}
+          className="mt-5 flex w-full items-center gap-3 rounded-xl p-3 hover:bg-white/10"
+        >
+          <LogOut size={20} />
+          Sair
+        </button>
       </aside>
 
-      <main className="p-5 md:ml-64 md:p-10">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Painel inicial
-            </h2>
-            <p className="mt-1 text-gray-500">
-              Bem-vindo ao AfiliaPro!
-            </p>
-          </div>
+      <main className="min-w-0 flex-1 p-5 md:p-10">
+        {pagina === 'inicio' && (
+          <>
+            <header className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Painel inicial
+              </h2>
+              <p className="mt-1 text-gray-500">
+                Bem-vindo ao AfiliaPro!
+              </p>
+            </header>
 
-          <button
-            onClick={sair}
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-gray-700 shadow-sm"
-          >
-            <LogOut size={18} />
-            Sair
-          </button>
-        </header>
+            <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <MousePointerClick className="mb-4 text-violet-700" size={28} />
+                <p className="text-sm text-gray-500">Cliques nos links</p>
+                <h3 className="mt-2 text-3xl font-bold">0</h3>
+              </div>
 
-        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <MousePointerClick className="mb-4 text-violet-700" size={28} />
-            <p className="text-sm text-gray-500">Cliques nos links</p>
-            <h3 className="mt-2 text-3xl font-bold">0</h3>
-          </div>
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <ShoppingBag className="mb-4 text-violet-700" size={28} />
+                <p className="text-sm text-gray-500">Produtos afiliados</p>
+                <h3 className="mt-2 text-3xl font-bold">0</h3>
+              </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <ShoppingBag className="mb-4 text-violet-700" size={28} />
-            <p className="text-sm text-gray-500">Produtos afiliados</p>
-            <h3 className="mt-2 text-3xl font-bold">0</h3>
-          </div>
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <TrendingUp className="mb-4 text-violet-700" size={28} />
+                <p className="text-sm text-gray-500">Vendas registradas</p>
+                <h3 className="mt-2 text-3xl font-bold">0</h3>
+              </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <TrendingUp className="mb-4 text-violet-700" size={28} />
-            <p className="text-sm text-gray-500">Vendas registradas</p>
-            <h3 className="mt-2 text-3xl font-bold">0</h3>
-          </div>
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <Wallet className="mb-4 text-violet-700" size={28} />
+                <p className="text-sm text-gray-500">Comissões registradas</p>
+                <h3 className="mt-2 text-3xl font-bold">R$ 0,00</h3>
+              </div>
+            </section>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <Wallet className="mb-4 text-violet-700" size={28} />
-            <p className="text-sm text-gray-500">Comissões registradas</p>
-            <h3 className="mt-2 text-3xl font-bold">R$ 0,00</h3>
-          </div>
-        </section>
+            <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900">
+                Comece a divulgar
+              </h3>
+              <p className="mt-2 text-gray-600">
+                Explore os produtos disponíveis e organize seus links de afiliado em um só lugar.
+              </p>
+            </section>
+          </>
+        )}
 
-        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900">
-            Comece a divulgar
-          </h3>
-          <p className="mt-2 text-gray-600">
-            Explore os produtos disponíveis e organize seus links de afiliado
-            em um só lugar.
+        {pagina === 'produtos' && <Products />}
+        {pagina === 'links' && <MyLinks />}
+        {pagina === 'solicitacoes' && <Applications />}
+
+        {pagina === 'admin' && admin && <Admin />}
+
+        {pagina === 'admin' && !admin && (
+          <p className="rounded-xl bg-white p-6 text-red-600">
+            Você não tem permissão para acessar esta área.
           </p>
-        </section>
+        )}
       </main>
     </div>
   )
-}
+                }
