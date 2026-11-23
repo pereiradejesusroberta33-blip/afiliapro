@@ -1,53 +1,147 @@
 
 import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function App() {
-  const [menuAberto, setMenuAberto] = useState(false)
+  const [modo, setModo] = useState<'login' | 'cadastro'>('login')
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [mensagem, setMensagem] = useState('')
+  const [carregando, setCarregando] = useState(false)
+
+  async function entrar(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setCarregando(true)
+    setMensagem('')
+
+    try {
+      if (modo === 'cadastro') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password: senha,
+          options: {
+            data: { full_name: nome },
+          },
+        })
+
+        if (error) throw error
+        setMensagem('Cadastro realizado! Verifique seu e-mail para confirmar a conta.')
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: senha,
+        })
+
+        if (error) throw error
+        setMensagem('Login realizado com sucesso!')
+      }
+    } catch (error) {
+      setMensagem(error instanceof Error ? error.message : 'Ocorreu um erro.')
+    } finally {
+      setCarregando(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-violet-700 text-white shadow-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <h1 className="text-2xl font-bold">AfiliaPro</h1>
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10">
+      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-violet-700">AfiliaPro</h1>
+          <p className="mt-2 text-gray-500">
+            Sua plataforma de marketing de afiliados
+          </p>
+        </div>
+
+        <div className="mb-6 grid grid-cols-2 rounded-xl bg-gray-100 p-1">
+          <button
+            type="button"
+            onClick={() => setModo('login')}
+            className={`rounded-lg py-3 font-semibold ${
+              modo === 'login'
+                ? 'bg-violet-700 text-white'
+                : 'text-gray-600'
+            }`}
+          >
+            Entrar
+          </button>
 
           <button
-            onClick={() => setMenuAberto(!menuAberto)}
-            className="rounded-lg bg-white/10 px-4 py-2 hover:bg-white/20"
+            type="button"
+            onClick={() => setModo('cadastro')}
+            className={`rounded-lg py-3 font-semibold ${
+              modo === 'cadastro'
+                ? 'bg-violet-700 text-white'
+                : 'text-gray-600'
+            }`}
           >
-            {menuAberto ? 'Fechar' : 'Menu'}
+            Criar conta
           </button>
         </div>
 
-        {menuAberto && (
-          <nav className="border-t border-white/20 px-6 py-4">
-            <p>Início</p>
-            <p>Produtos</p>
-            <p>Meus links</p>
-            <p>Minha conta</p>
-          </nav>
-        )}
-      </header>
+        <form onSubmit={entrar} className="space-y-4">
+          {modo === 'cadastro' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Nome completo
+              </label>
+              <input
+                required
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-violet-600"
+                placeholder="Seu nome"
+              />
+            </div>
+          )}
 
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <section className="rounded-2xl bg-white p-8 shadow-sm">
-          <p className="mb-3 font-semibold text-violet-700">
-            BEM-VINDO AO AFILIAPRO
-          </p>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              E-mail
+            </label>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-violet-600"
+              placeholder="seu@email.com"
+            />
+          </div>
 
-          <h2 className="mb-4 text-3xl font-bold text-gray-900">
-            Sua jornada como afiliado começa aqui.
-          </h2>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Senha
+            </label>
+            <input
+              required
+              type="password"
+              minLength={6}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-violet-600"
+              placeholder="Mínimo de 6 caracteres"
+            />
+          </div>
 
-          <p className="max-w-2xl text-gray-600">
-            Encontre produtos, organize seus links de afiliado
-            e acompanhe seus resultados em um só lugar.
-          </p>
-
-          <button className="mt-6 rounded-xl bg-violet-700 px-6 py-3 font-semibold text-white hover:bg-violet-800">
-            Conhecer a plataforma
+          <button
+            disabled={carregando}
+            className="w-full rounded-xl bg-violet-700 py-3 font-semibold text-white hover:bg-violet-800 disabled:opacity-60"
+          >
+            {carregando
+              ? 'Aguarde...'
+              : modo === 'login'
+                ? 'Entrar na plataforma'
+                : 'Criar minha conta'}
           </button>
-        </section>
-      </main>
-    </div>
+        </form>
+
+        {mensagem && (
+          <p className="mt-5 rounded-lg bg-violet-50 p-3 text-sm text-violet-800">
+            {mensagem}
+          </p>
+        )}
+      </section>
+    </main>
   )
 }
