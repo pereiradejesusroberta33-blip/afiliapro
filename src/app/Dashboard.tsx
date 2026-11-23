@@ -20,8 +20,6 @@ export default function Dashboard() {
     }
   }
 
-  const usuario = supabase.auth.getUser()
-
   return (
     <div className="min-h-screen bg-gray-100">
       <aside className="hidden min-h-screen w-64 bg-violet-800 p-6 text-white md:fixed md:block">
