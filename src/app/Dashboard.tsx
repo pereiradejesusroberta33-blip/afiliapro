@@ -9,8 +9,19 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 export default function Dashboard() {
+  async function sair() {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      alert('Não foi possível sair. Tente novamente.')
+    }
+  }
+
+  const usuario = supabase.auth.getUser()
+
   return (
     <div className="min-h-screen bg-gray-100">
       <aside className="hidden min-h-screen w-64 bg-violet-800 p-6 text-white md:fixed md:block">
@@ -50,7 +61,10 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <button className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-gray-700 shadow-sm">
+          <button
+            onClick={sair}
+            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-gray-700 shadow-sm"
+          >
             <LogOut size={18} />
             Sair
           </button>
