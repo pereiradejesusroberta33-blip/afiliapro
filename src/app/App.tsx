@@ -1,18 +1,38 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import Dashboard from './Dashboard'
 
 export default function App() {
+  const [usuario, setUsuario] = useState<User | null>(null)
+  const [carregando, setCarregando] = useState(true)
   const [modo, setModo] = useState<'login' | 'cadastro'>('login')
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mensagem, setMensagem] = useState('')
-  const [carregando, setCarregando] = useState(false)
+  const [enviando, setEnviando] = useState(false)
 
-  async function entrar(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUsuario(data.session?.user ?? null)
+      setCarregando(false)
+    })
+
+    const { data } = supabase.auth.onAuthStateChange(
+      (_evento, sessao) => {
+        setUsuario(sessao?.user ?? null)
+      },
+    )
+
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  async function entrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setCarregando(true)
+    setEnviando(true)
     setMensagem('')
 
     try {
@@ -26,7 +46,10 @@ export default function App() {
         })
 
         if (error) throw error
-        setMensagem('Cadastro realizado! Verifique seu e-mail para confirmar a conta.')
+
+        setMensagem(
+          'Cadastro realizado! Verifique seu e-mail para confirmar a conta.',
+        )
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -34,20 +57,35 @@ export default function App() {
         })
 
         if (error) throw error
-        setMensagem('Login realizado com sucesso!')
       }
     } catch (error) {
-      setMensagem(error instanceof Error ? error.message : 'Ocorreu um erro.')
+      setMensagem(
+        error instanceof Error ? error.message : 'Ocorreu um erro.',
+      )
     } finally {
-      setCarregando(false)
+      setEnviando(false)
     }
+  }
+
+  if (carregando) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Carregando AfiliaPro...
+      </div>
+    )
+  }
+
+  if (usuario) {
+    return <Dashboard />
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-violet-700">AfiliaPro</h1>
+          <h1 className="text-3xl font-bold text-violet-700">
+            AfiliaPro
+          </h1>
           <p className="mt-2 text-gray-500">
             Sua plataforma de marketing de afiliados
           </p>
@@ -56,7 +94,10 @@ export default function App() {
         <div className="mb-6 grid grid-cols-2 rounded-xl bg-gray-100 p-1">
           <button
             type="button"
-            onClick={() => setModo('login')}
+            onClick={() => {
+              setModo('login')
+              setMensagem('')
+            }}
             className={`rounded-lg py-3 font-semibold ${
               modo === 'login'
                 ? 'bg-violet-700 text-white'
@@ -68,7 +109,10 @@ export default function App() {
 
           <button
             type="button"
-            onClick={() => setModo('cadastro')}
+            onClick={() => {
+              setModo('cadastro')
+              setMensagem('')
+            }}
             className={`rounded-lg py-3 font-semibold ${
               modo === 'cadastro'
                 ? 'bg-violet-700 text-white'
@@ -125,10 +169,10 @@ export default function App() {
           </div>
 
           <button
-            disabled={carregando}
+            disabled={enviando}
             className="w-full rounded-xl bg-violet-700 py-3 font-semibold text-white hover:bg-violet-800 disabled:opacity-60"
           >
-            {carregando
+            {enviando
               ? 'Aguarde...'
               : modo === 'login'
                 ? 'Entrar na plataforma'
@@ -144,4 +188,4 @@ export default function App() {
       </section>
     </main>
   )
-}
+          }
