@@ -1,0 +1,36 @@
+
+# Dependências
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+
+# Ambiente e segredos (nunca versionar)
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editores e sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.local
+
+# Android (gerado pelo Capacitor e pelo Gradle)
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+*.iml
+.cxx/
+
+# Supabase local
+supabase/.temp/
